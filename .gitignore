@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# SQLite database (binary, regenerates automatically)
+database/*.db
+
+# Local env files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vite cache
+.vite/

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SafePay — Database Structure</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#1a1d23;color:#e0e6f0;min-height:100vh}
+  header{background:linear-gradient(135deg,#0f4c81,#1a7abf);padding:20px 30px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+  header h1{font-size:1.6rem;font-weight:700;letter-spacing:1px}
+  header span{background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:20px;font-size:0.8rem}
+  .db-badge{background:#f59e0b;color:#1a1d23;padding:4px 12px;border-radius:20px;font-weight:700;font-size:0.8rem}
+  .container{padding:24px 30px;max-width:1400px;margin:auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:22px;margin-top:10px}
+  .card{background:#242830;border:1px solid #2e3440;border-radius:12px;overflow:hidden;transition:transform .2s,box-shadow .2s}
+  .card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+  .card-header{background:linear-gradient(135deg,#0f4c81,#1565a8);padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+  .card-header h2{font-size:1rem;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+  .table-icon{font-size:1.1rem}
+  .row-count{background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:12px;font-size:0.75rem}
+  table{width:100%;border-collapse:collapse}
+  thead tr{background:#1e2330}
+  th{padding:9px 14px;text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:.8px;color:#7b8caa;border-bottom:1px solid #2e3440}
+  td{padding:9px 14px;font-size:0.82rem;border-bottom:1px solid #1e2330;font-family:'Courier New',monospace}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#2a2f3d}
+  .pk{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a1d23;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:700}
+  .fk{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:700}
+  .uniq{background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:700}
+  .type-int{color:#60a5fa}.type-var{color:#34d399}.type-dec{color:#f59e0b}.type-bool{color:#f472b6}.type-ts{color:#a78bfa}.type-enum{color:#fb923c}.type-text{color:#22d3ee}
+  .nullable{color:#6b7280;font-style:italic;font-size:0.75rem}
+  .not-null{color:#4ade80;font-size:0.75rem}
+  .default{color:#94a3b8;font-size:0.75rem}
+  .section-title{margin:28px 0 10px;font-size:0.85rem;text-transform:uppercase;letter-spacing:1.5px;color:#7b8caa;display:flex;align-items:center;gap:10px}
+  .section-title::after{content:'';flex:1;height:1px;background:#2e3440}
+  .erd{background:#242830;border:1px solid #2e3440;border-radius:12px;padding:22px;margin-top:10px}
+  .rel-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1e2330;border-radius:8px;margin-bottom:8px;font-size:0.82rem}
+  .rel-from{color:#f59e0b;font-weight:700}.rel-arrow{color:#7b8caa}.rel-to{color:#60a5fa;font-weight:700}.rel-type{background:#2e3440;padding:2px 8px;border-radius:10px;font-size:0.7rem;color:#94a3b8;margin-left:auto}
+  .stats-bar{display:flex;gap:14px;margin:18px 0 6px;flex-wrap:wrap}
+  .stat{background:#242830;border:1px solid #2e3440;border-radius:10px;padding:12px 20px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .stat-num{font-size:1.6rem;font-weight:700;color:#60a5fa}
+  .stat-label{font-size:0.72rem;color:#7b8caa;text-transform:uppercase;letter-spacing:.8px}
+</style>
+</head>
+<body>
+<header>
+  <div>🔒</div>
+  <h1>SafePay Database</h1>
+  <span class="db-badge">MySQL</span>
+  <span>9 Tables · 16 Relationships</span>
+</header>
+
+<div class="container">
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-num">9</span><span class="stat-label">Tables</span></div>
+    <div class="stat"><span class="stat-num">16</span><span class="stat-label">FK Relations</span></div>
+    <div class="stat"><span class="stat-num">4</span><span class="stat-label">ENUM Cols</span></div>
+    <div class="stat"><span class="stat-num">2</span><span class="stat-label">Sample Users</span></div>
+    <div class="stat"><span class="stat-num">4</span><span class="stat-label">Merchants</span></div>
+    <div class="stat"><span class="stat-num">3</span><span class="stat-label">Transactions</span></div>
+  </div>
+
+  <div class="section-title">Table Structures</div>
+  <div class="grid">
+
+    <!-- FAMILIES -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">👨‍👩‍👦</span> families</h2><span class="row-count">1 row</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>family_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>family_name</td><td class="type-var">VARCHAR(100)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>created_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">CURRENT_TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- USERS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">👤</span> users</h2><span class="row-count">2 rows</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>user_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>family_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>full_name</td><td class="type-var">VARCHAR(100)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>phone</td><td class="type-var">VARCHAR(15)</td><td><span class="uniq">UQ</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>email</td><td class="type-var">VARCHAR(100)</td><td><span class="uniq">UQ</span></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>role</td><td class="type-enum">ENUM</td><td></td><td class="not-null">NOT NULL</td><td><span class="default">student|parent</span></td></tr>
+          <tr><td>upi_id</td><td class="type-var">VARCHAR(100)</td><td><span class="uniq">UQ</span></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>pin_hash</td><td class="type-var">VARCHAR(255)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>college</td><td class="type-var">VARCHAR(150)</td><td></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>is_active</td><td class="type-bool">BOOLEAN</td><td></td><td class="nullable">NULL</td><td class="default">TRUE</td></tr>
+          <tr><td>created_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">CURRENT_TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- WALLETS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">👛</span> wallets</h2><span class="row-count">1 row</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>wallet_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>user_id</td><td class="type-int">INT</td><td><span class="fk">FK</span> <span class="uniq">UQ</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>balance</td><td class="type-dec">DECIMAL(10,2)</td><td></td><td class="nullable">NULL</td><td class="default">0.00</td></tr>
+          <tr><td>updated_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">ON UPDATE</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SPENDING_LIMITS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">📊</span> spending_limits</h2><span class="row-count">1 row</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>limit_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>student_id</td><td class="type-int">INT</td><td><span class="fk">FK</span> <span class="uniq">UQ</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>monthly_limit</td><td class="type-dec">DECIMAL(10,2)</td><td></td><td class="nullable">NULL</td><td class="default">5000.00</td></tr>
+          <tr><td>daily_limit</td><td class="type-dec">DECIMAL(10,2)</td><td></td><td class="nullable">NULL</td><td class="default">1000.00</td></tr>
+          <tr><td>per_txn_limit</td><td class="type-dec">DECIMAL(10,2)</td><td></td><td class="nullable">NULL</td><td class="default">500.00</td></tr>
+          <tr><td>set_by_parent_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>updated_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">ON UPDATE</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MERCHANTS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">🏪</span> merchants</h2><span class="row-count">4 rows</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>merchant_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>name</td><td class="type-var">VARCHAR(100)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>upi_id</td><td class="type-var">VARCHAR(100)</td><td><span class="uniq">UQ</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>category</td><td class="type-enum">ENUM</td><td></td><td class="nullable">NULL</td><td class="default">food|transport|stationery|hostel|other</td></tr>
+          <tr><td>created_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">CURRENT_TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- GPS_LOCATIONS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">📍</span> gps_locations</h2><span class="row-count">3 rows</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>location_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>user_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>latitude</td><td class="type-dec">DECIMAL(10,8)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>longitude</td><td class="type-dec">DECIMAL(11,8)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>address</td><td class="type-var">VARCHAR(255)</td><td></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>captured_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">CURRENT_TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">💳</span> transactions</h2><span class="row-count">3 rows</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>txn_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>student_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>merchant_upi</td><td class="type-var">VARCHAR(100)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>merchant_name</td><td class="type-var">VARCHAR(100)</td><td></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>amount</td><td class="type-dec">DECIMAL(10,2)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>note</td><td class="type-var">VARCHAR(255)</td><td></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>status</td><td class="type-enum">ENUM</td><td></td><td class="nullable">NULL</td><td class="default">pending</td></tr>
+          <tr><td>location_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>scanned_qr</td><td class="type-bool">BOOLEAN</td><td></td><td class="nullable">NULL</td><td class="default">FALSE</td></tr>
+          <tr><td>created_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">CURRENT_TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PARENT_NOTIFICATIONS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">🔔</span> parent_notifications</h2><span class="row-count">3 rows</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>notif_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>parent_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>txn_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>message</td><td class="type-text">TEXT</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>is_read</td><td class="type-bool">BOOLEAN</td><td></td><td class="nullable">NULL</td><td class="default">FALSE</td></tr>
+          <tr><td>sent_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">CURRENT_TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- LIMIT_INCREASE_REQUESTS -->
+    <div class="card">
+      <div class="card-header"><h2><span class="table-icon">📝</span> limit_increase_requests</h2><span class="row-count">0 rows</span></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>request_id</td><td class="type-int">INT</td><td><span class="pk">PK</span></td><td class="not-null">NOT NULL</td><td>AUTO_INC</td></tr>
+          <tr><td>student_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>parent_id</td><td class="type-int">INT</td><td><span class="fk">FK</span></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>reason</td><td class="type-var">VARCHAR(255)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>requested_amt</td><td class="type-dec">DECIMAL(10,2)</td><td></td><td class="not-null">NOT NULL</td><td>—</td></tr>
+          <tr><td>status</td><td class="type-enum">ENUM</td><td></td><td class="nullable">NULL</td><td class="default">pending</td></tr>
+          <tr><td>responded_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td>—</td></tr>
+          <tr><td>created_at</td><td class="type-ts">TIMESTAMP</td><td></td><td class="nullable">NULL</td><td class="default">CURRENT_TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- end grid -->
+
+  <div class="section-title">Foreign Key Relationships</div>
+  <div class="erd">
+    <div class="rel-item"><span class="rel-from">users.family_id</span><span class="rel-arrow">→</span><span class="rel-to">families.family_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">wallets.user_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">spending_limits.student_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">spending_limits.set_by_parent_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">gps_locations.user_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">transactions.student_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">transactions.location_id</span><span class="rel-arrow">→</span><span class="rel-to">gps_locations.location_id</span><span class="rel-type">SET NULL</span></div>
+    <div class="rel-item"><span class="rel-from">parent_notifications.parent_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">parent_notifications.txn_id</span><span class="rel-arrow">→</span><span class="rel-to">transactions.txn_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">limit_increase_requests.student_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+    <div class="rel-item"><span class="rel-from">limit_increase_requests.parent_id</span><span class="rel-arrow">→</span><span class="rel-to">users.user_id</span><span class="rel-type">CASCADE DELETE</span></div>
+  </div>
+
+  <div class="section-title">Legend</div>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:30px">
+    <span><span class="pk">PK</span> Primary Key</span>
+    <span><span class="fk">FK</span> Foreign Key</span>
+    <span><span class="uniq">UQ</span> Unique</span>
+    <span style="color:#60a5fa">■</span> INT &nbsp;
+    <span style="color:#34d399">■</span> VARCHAR &nbsp;
+    <span style="color:#f59e0b">■</span> DECIMAL &nbsp;
+    <span style="color:#f472b6">■</span> BOOLEAN &nbsp;
+    <span style="color:#a78bfa">■</span> TIMESTAMP &nbsp;
+    <span style="color:#fb923c">■</span> ENUM &nbsp;
+    <span style="color:#22d3ee">■</span> TEXT
+  </div>
+</div>
+</body>
+</html>

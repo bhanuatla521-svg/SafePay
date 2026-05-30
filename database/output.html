@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>SafePay — Live SQL Output</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f4c81 0%, #1565c0 50%, #0288d1 100%);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5)
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.18);
+      color: #fff;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 0.74rem;
+      font-weight: 600
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 1.5s infinite;
+      margin-left: auto
+    }
+
+    .live-txt {
+      font-size: 0.74rem;
+      color: rgba(255, 255, 255, 0.85)
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
+
+      50% {
+        opacity: .6;
+        transform: scale(1.2)
+      }
+    }
+
+    .refresh-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      padding: 7px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: background .15s;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .refresh-btn:hover {
+      background: rgba(255, 255, 255, 0.25)
+    }
+
+    .spin {
+      display: inline-block;
+      animation: spin .6s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 24px
+    }
+
+    .stats {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap
+    }
+
+    .stat {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 14px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-width: 100px
+    }
+
+    .stat-num {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #58a6ff
+    }
+
+    .stat-label {
+      font-size: 0.68rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 1px
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-bottom: 0;
+      border-bottom: 1px solid #30363d
+    }
+
+    .tab {
+      padding: 9px 16px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: #8b949e;
+      transition: all .15s;
+      margin-bottom: -1px
+    }
+
+    .tab:hover {
+      color: #c9d1d9;
+      background: #161b22
+    }
+
+    .tab.active {
+      background: #161b22;
+      color: #58a6ff;
+      border-color: #30363d;
+      border-bottom-color: #161b22
+    }
+
+    .panel {
+      display: none;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden
+    }
+
+    .panel.active {
+      display: block
+    }
+
+    .panel-header {
+      background: #0d1117;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #30363d
+    }
+
+    .panel-header h2 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #f0f6fc
+    }
+
+    .row-pill {
+      background: #1f6feb33;
+      color: #58a6ff;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 600
+    }
+
+    .empty-pill {
+      background: #6e76811a;
+      color: #8b949e;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 0.7rem
+    }
+
+    .table-wrap {
+      overflow-x: auto
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.81rem
+    }
+
+    thead th {
+      background: #0d1117;
+      padding: 9px 14px;
+      text-align: left;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: #8b949e;
+      border-bottom: 1px solid #30363d;
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #21262d;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.79rem;
+      white-space: nowrap
+    }
+
+    tr:last-child td {
+      border-bottom: none
+    }
+
+    tbody tr:hover td {
+      background: #1c2128
+    }
+
+    .role-student {
+      background: #1f6feb33;
+      color: #58a6ff;
+      padding: 2px 9px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 600
+    }
+
+    .role-parent {
+      background: #7c3aed33;
+      color: #a78bfa;
+      padding: 2px 9px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 600
+    }
+
+    .status-success {
+      background: #23863a33;
+      color: #3fb950;
+      padding: 2px 9px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 600
+    }
+
+    .status-pending {
+      background: #d9730d33;
+      color: #f0883e;
+      padding: 2px 9px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 600
+    }
+
+    .status-failed {
+      background: #da3a3a33;
+      color: #f85149;
+      padding: 2px 9px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 600
+    }
+
+    .cat {
+      padding: 2px 8px;
+      border-radius: 7px;
+      font-size: 0.7rem
+    }
+
+    .cat-food {
+      background: #d9730d22;
+      color: #f0883e
+    }
+
+    .cat-transport {
+      background: #1f6feb22;
+      color: #58a6ff
+    }
+
+    .cat-stationery {
+      background: #2ea04322;
+      color: #3fb950
+    }
+
+    .cat-hostel {
+      background: #7c3aed22;
+      color: #a78bfa
+    }
+
+    .cat-other {
+      background: #6e768122;
+      color: #8b949e
+    }
+
+    .null-val {
+      color: #484f58;
+      font-style: italic
+    }
+
+    .amount {
+      color: #3fb950;
+      font-weight: 600
+    }
+
+    .unread {
+      background: #da3a3a22;
+      color: #f85149;
+      padding: 2px 8px;
+      border-radius: 7px;
+      font-size: 0.7rem
+    }
+
+    .read-val {
+      background: #23863a22;
+      color: #3fb950;
+      padding: 2px 8px;
+      border-radius: 7px;
+      font-size: 0.7rem
+    }
+
+    .qr-yes {
+      background: #0288d122;
+      color: #38bdf8;
+      padding: 2px 8px;
+      border-radius: 7px;
+      font-size: 0.7rem
+    }
+
+    .qr-no {
+      background: #6e768122;
+      color: #8b949e;
+      padding: 2px 8px;
+      border-radius: 7px;
+      font-size: 0.7rem
+    }
+
+    .empty-state {
+      padding: 36px;
+      text-align: center;
+      color: #484f58
+    }
+
+    .error-box {
+      background: #1a0f0f;
+      border: 1px solid #7f1d1d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: #fca5a5;
+      font-size: 0.84rem;
+      margin: 20px 0
+    }
+
+    .loading {
+      padding: 40px;
+      text-align: center;
+      color: #8b949e;
+      font-size: 0.9rem
+    }
+
+    .last-updated {
+      font-size: 0.72rem;
+      color: #8b949e;
+      margin-left: auto
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <span style="font-size:1.4rem">🔒</span>
+    <h1>SafePay — Live SQL Output</h1>
+    <span class="badge">safepay.db</span>
+    <span class="badge">SQLite</span>
+    <span class="live-dot" id="dot" style="background:#6b7280"></span>
+    <span class="live-txt" id="connStatus">Connecting…</span>
+    <button class="refresh-btn" onclick="loadAll()">⟳ Refresh</button>
+  </header>
+
+  <div class="container">
+    <div class="stats" id="statsBar">
+      <div class="stat"><span class="stat-num" id="s-tables">—</span><span class="stat-label">Tables</span></div>
+      <div class="stat"><span class="stat-num" id="s-balance">—</span><span class="stat-label">Balance</span></div>
+      <div class="stat"><span class="stat-num" id="s-txns">—</span><span class="stat-label">Transactions</span></div>
+      <div class="stat"><span class="stat-num" id="s-notifs">—</span><span class="stat-label">Alerts</span></div>
+      <div class="stat"><span class="stat-num" id="s-merchants">—</span><span class="stat-label">Merchants</span></div>
+      <div class="stat"><span class="stat-num" id="s-unread">—</span><span class="stat-label">Unread</span></div>
+    </div>
+
+    <div class="tabs" id="tabBar"></div>
+    <div id="panels"></div>
+  </div>
+
+  <script>
+    const API = "/api/all";
+    let currentTab = 0;
+
+    const TABLE_ICONS = {
+      families: '👨‍👩‍👦', users: '👤', wallets: '👛', spending_limits: '📊',
+      merchants: '🏪', gps_locations: '📍', transactions: '💳',
+      parent_notifications: '🔔', limit_increase_requests: '📝', sqlite_sequence: '⚙️'
+    };
+
+    function badge(val, col) {
+      if (val === null || val === undefined) return `<span class="null-val">NULL</span>`;
+      const v = String(val);
+      // role
+      if (v === 'student') return `<span class="role-student">student</span>`;
+      if (v === 'parent') return `<span class="role-parent">parent</span>`;
+      // status
+      if (v === 'success') return `<span class="status-success">✓ success</span>`;
+      if (v === 'pending') return `<span class="status-pending">pending</span>`;
+      if (v === 'failed') return `<span class="status-failed">failed</span>`;
+      // category
+      if (['food', 'transport', 'stationery', 'hostel', 'other'].includes(v)) return `<span class="cat cat-${v}">${v}</span>`;
+      // booleans
+      if (col === 'is_read' || col === 'scanned_qr' || col === 'is_active') {
+        if (v === '1' || v === 'true') return col === 'is_read' ? `<span class="read-val">Read</span>` : col === 'scanned_qr' ? `<span class="qr-yes">Yes ✓</span>` : '✅';
+        return col === 'is_read' ? `<span class="unread">Unread</span>` : col === 'scanned_qr' ? `<span class="qr-no">No</span>` : '✅';
+      }
+      // amount/balance
+      if (col === 'amount' || col === 'balance' || col.includes('limit') || col === 'requested_amt') {
+        return `<span class="amount">₹ ${parseFloat(v).toFixed(2)}</span>`;
+      }
+      return v.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderTable(name, rows) {
+      if (!rows || rows.length === 0) {
+        return `<div class="empty-state">📭 No rows in <strong>${name}</strong> yet</div>`;
+      }
+      const cols = Object.keys(rows[0]);
+      let html = `<div class="table-wrap"><table><thead><tr>`;
+      cols.forEach(c => { html += `<th>${c}</th>`; });
+      html += `</tr></thead><tbody>`;
+      rows.forEach(row => {
+        html += `<tr>`;
+        cols.forEach(c => { html += `<td>${badge(row[c], c)}</td>`; });
+        html += `</tr>`;
+      });
+      html += `</tbody></table></div>`;
+      return html;
+    }
+
+    function buildUI(data) {
+      const tables = Object.keys(data);
+      const tabBar = document.getElementById('tabBar');
+      const panels = document.getElementById('panels');
+      tabBar.innerHTML = '';
+      panels.innerHTML = '';
+
+      tables.forEach((name, i) => {
+        const rows = data[name];
+        const icon = TABLE_ICONS[name] || '📄';
+        // Tab
+        const tab = document.createElement('div');
+        tab.className = 'tab' + (i === currentTab ? ' active' : '');
+        tab.innerHTML = `${icon} ${name}`;
+        tab.onclick = () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('panel-' + name).classList.add('active');
+          currentTab = i;
+        };
+        tabBar.appendChild(tab);
+
+        // Panel
+        const panel = document.createElement('div');
+        panel.className = 'panel' + (i === currentTab ? ' active' : '');
+        panel.id = 'panel-' + name;
+        const pill = rows.length > 0
+          ? `<span class="row-pill">${rows.length} row${rows.length !== 1 ? 's' : ''}</span>`
+          : `<span class="empty-pill">0 rows — Empty</span>`;
+        panel.innerHTML = `<div class="panel-header"><h2>${icon} ${name}</h2>${pill}</div>${renderTable(name, rows)}`;
+        panels.appendChild(panel);
+      });
+
+      // Update stats
+      document.getElementById('s-tables').textContent = tables.length;
+      const wallet = (data.wallets || [])[0];
+      document.getElementById('s-balance').textContent = wallet ? `₹${Math.round(wallet.balance)}` : '—';
+      document.getElementById('s-txns').textContent = (data.transactions || []).length;
+      document.getElementById('s-notifs').textContent = (data.parent_notifications || []).length;
+      document.getElementById('s-merchants').textContent = (data.merchants || []).length;
+      const unread = (data.parent_notifications || []).filter(n => !n.is_read).length;
+      document.getElementById('s-unread').textContent = unread;
+    }
+
+    async function loadAll() {
+      const dot = document.getElementById('dot');
+      const status = document.getElementById('connStatus');
+      dot.style.background = '#f59e0b';
+      status.textContent = 'Loading…';
+
+      try {
+        const res = await fetch(API + '?t=' + Date.now());
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        buildUI(data);
+        dot.style.background = '#22c55e';
+        status.textContent = `Live · Updated ${new Date().toLocaleTimeString('en-IN')}`;
+      } catch (e) {
+        dot.style.background = '#ef4444';
+        status.textContent = 'API offline — start server.js';
+        document.getElementById('panels').innerHTML = `
+      <div class="error-box">
+        ❌ Failed to load data from <strong>/api/all</strong><br><br>
+        Error: ${e.message}<br><br>
+        Make sure your database file exists at <code>database/safepay.db</code>
+      </div>`;
+      }
+    }
+
+    // Load on page open
+    loadAll();
+  </script>
+</body>
+
+</html>

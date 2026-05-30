@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SafePay — SQL Query Runner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#13151a;color:#e0e6f0;height:100vh;display:flex;flex-direction:column}
+header{background:linear-gradient(135deg,#0f4c81,#1a7abf);padding:14px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+header h1{font-size:1.2rem;font-weight:700}
+.badge{background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:12px;font-size:0.75rem}
+.status-dot{width:10px;height:10px;border-radius:50%;background:#ef4444;margin-left:auto;transition:background .3s}
+.status-dot.connected{background:#22c55e}
+.status-text{font-size:0.75rem;color:rgba(255,255,255,0.7)}
+.layout{display:flex;flex:1;overflow:hidden}
+/* Sidebar */
+.sidebar{width:220px;background:#1a1d23;border-right:1px solid #2e3440;overflow-y:auto;flex-shrink:0}
+.sidebar-title{padding:12px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#7b8caa;border-bottom:1px solid #2e3440}
+.table-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #1e2330;font-size:0.82rem;display:flex;align-items:center;gap:8px;transition:background .15s}
+.table-item:hover{background:#242830}
+.table-item.active{background:#1e3a5f;color:#60a5fa}
+.table-icon{font-size:0.9rem}
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* Editor */
+.editor-section{padding:16px;border-bottom:1px solid #2e3440;flex-shrink:0}
+.editor-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:#7b8caa;margin-bottom:8px}
+.editor-wrap{position:relative}
+textarea{width:100%;height:130px;background:#1e2330;border:1px solid #2e3440;border-radius:8px;padding:12px;color:#e0e6f0;font-family:'Courier New',monospace;font-size:0.85rem;resize:none;outline:none;line-height:1.6}
+textarea:focus{border-color:#1a7abf;box-shadow:0 0 0 2px rgba(26,122,191,0.2)}
+.btn-row{display:flex;gap:10px;margin-top:10px;align-items:center}
+button{padding:9px 20px;border:none;border-radius:7px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .15s}
+.btn-run{background:linear-gradient(135deg,#1a7abf,#0f4c81);color:#fff}
+.btn-run:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(26,122,191,0.4)}
+.btn-clear{background:#2e3440;color:#94a3b8}
+.btn-clear:hover{background:#3a4150}
+.btn-preset{background:#1e2330;color:#60a5fa;border:1px solid #2e3440;padding:7px 14px;font-size:0.78rem}
+.btn-preset:hover{background:#242830}
+.exec-time{margin-left:auto;font-size:0.75rem;color:#7b8caa}
+/* Results */
+.results-section{flex:1;overflow:auto;padding:16px}
+.results-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:#7b8caa;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.row-badge{background:#1e3a5f;color:#60a5fa;padding:2px 10px;border-radius:10px;font-size:0.72rem}
+.result-table-wrap{overflow-x:auto;border-radius:8px;border:1px solid #2e3440}
+table{width:100%;border-collapse:collapse;font-size:0.82rem}
+thead tr{background:#1e2330}
+th{padding:10px 14px;text-align:left;font-size:0.7rem;text-transform:uppercase;letter-spacing:.8px;color:#7b8caa;border-bottom:1px solid #2e3440;white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid #1e2330;font-family:'Courier New',monospace;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1e2330}
+.null-val{color:#4a5568;font-style:italic}
+.empty-state{text-align:center;padding:40px;color:#4a5568}
+.empty-state div{font-size:2rem;margin-bottom:10px}
+.error-box{background:#2d1515;border:1px solid #7f1d1d;border-radius:8px;padding:14px;color:#fca5a5;font-family:'Courier New',monospace;font-size:0.82rem}
+.success-box{background:#14291a;border:1px solid #166534;border-radius:8px;padding:12px;color:#86efac;font-size:0.84rem}
+.load-box{background:#1e2330;border:1px solid #2e3440;border-radius:10px;padding:30px;text-align:center;margin:20px}
+.load-box p{color:#7b8caa;margin-bottom:14px;font-size:0.9rem}
+.btn-load{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;padding:12px 28px;font-size:0.9rem}
+.btn-load:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(124,58,237,0.4)}
+#fileInput{display:none}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>🔒</div>
+  <h1>SafePay SQL Runner</h1>
+  <span class="badge">SQLite</span>
+  <span class="status-dot" id="statusDot"></span>
+  <span class="status-text" id="statusText">No DB loaded</span>
+</header>
+
+<div class="layout">
+  <!-- Sidebar: Table List -->
+  <div class="sidebar">
+    <div class="sidebar-title">📁 Tables</div>
+    <div id="tableList">
+      <div style="padding:16px;color:#4a5568;font-size:0.8rem">Load DB to see tables</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- DB Load -->
+    <div id="loadSection" class="load-box">
+      <div style="font-size:2.5rem;margin-bottom:10px">🗄️</div>
+      <p>Load your <strong>safepay.db</strong> file to start running queries</p>
+      <button class="btn-load" onclick="document.getElementById('fileInput').click()">📂 Open safepay.db</button>
+      <input type="file" id="fileInput" accept=".db,.sqlite,.sqlite3" onchange="loadDB(event)"/>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-section" id="editorSection" style="display:none">
+      <div class="editor-label">SQL Editor</div>
+      <div class="editor-wrap">
+        <textarea id="sqlEditor" placeholder="Type your SQL query here...
+Example: SELECT * FROM users;"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn-run" onclick="runQuery()">▶ Run Query</button>
+        <button class="btn-clear" onclick="clearResults()">✕ Clear</button>
+        <span class="exec-time" id="execTime"></span>
+      </div>
+      <div class="presets">
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM users;')">users</button>
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM wallets;')">wallets</button>
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM transactions;')">transactions</button>
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM merchants;')">merchants</button>
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM gps_locations;')">gps_locations</button>
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM parent_notifications;')">notifications</button>
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM spending_limits;')">limits</button>
+        <button class="btn-preset" onclick="setQuery('SELECT * FROM families;')">families</button>
+        <button class="btn-preset" onclick="setQuery('SELECT name FROM sqlite_master WHERE type=\'table\';')">📋 All Tables</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-section" id="resultsSection">
+      <div class="empty-state">
+        <div>📊</div>
+        <p>Query results will appear here</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let db = null;
+
+async function loadDB(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+  const buf = await file.arrayBuffer();
+  db = new SQL.Database(new Uint8Array(buf));
+  document.getElementById('statusDot').className = 'status-dot connected';
+  document.getElementById('statusText').textContent = file.name + ' loaded';
+  document.getElementById('loadSection').style.display = 'none';
+  document.getElementById('editorSection').style.display = 'block';
+  loadTableList();
+  setQuery('SELECT * FROM users;');
+  runQuery();
+}
+
+function loadTableList() {
+  const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;");
+  const list = document.getElementById('tableList');
+  list.innerHTML = '';
+  const icons = {families:'👨‍👩‍👦',users:'👤',wallets:'👛',spending_limits:'📊',merchants:'🏪',gps_locations:'📍',transactions:'💳',parent_notifications:'🔔',limit_increase_requests:'📝',sqlite_sequence:'⚙️'};
+  if (res.length && res[0].values) {
+    res[0].values.forEach(row => {
+      const name = row[0];
+      const icon = icons[name] || '📄';
+      const div = document.createElement('div');
+      div.className = 'table-item';
+      div.innerHTML = `<span class="table-icon">${icon}</span>${name}`;
+      div.onclick = () => { setQuery(`SELECT * FROM ${name};`); runQuery(); document.querySelectorAll('.table-item').forEach(x=>x.classList.remove('active')); div.classList.add('active'); };
+      list.appendChild(div);
+    });
+  }
+}
+
+function setQuery(sql) {
+  document.getElementById('sqlEditor').value = sql;
+}
+
+function runQuery() {
+  if (!db) return;
+  const sql = document.getElementById('sqlEditor').value.trim();
+  if (!sql) return;
+  const resultsSection = document.getElementById('resultsSection');
+  const t0 = performance.now();
+  try {
+    const results = db.exec(sql);
+    const elapsed = (performance.now() - t0).toFixed(1);
+    document.getElementById('execTime').textContent = `⏱ ${elapsed}ms`;
+    if (!results || results.length === 0) {
+      // DML statement
+      resultsSection.innerHTML = `<div class="success-box">✅ Query executed successfully. (No rows returned — this may be an INSERT/UPDATE/DELETE)</div>`;
+      return;
+    }
+    const { columns, values } = results[0];
+    const rowCount = values.length;
+    let html = `<div class="results-label">Results <span class="row-badge">${rowCount} row${rowCount!==1?'s':''}</span></div><div class="result-table-wrap"><table><thead><tr>`;
+    columns.forEach(col => { html += `<th>${col}</th>`; });
+    html += '</tr></thead><tbody>';
+    values.forEach(row => {
+      html += '<tr>';
+      row.forEach(cell => {
+        if (cell === null || cell === undefined) html += `<td class="null-val">NULL</td>`;
+        else html += `<td>${String(cell).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    resultsSection.innerHTML = html;
+  } catch(e) {
+    document.getElementById('execTime').textContent = '';
+    resultsSection.innerHTML = `<div class="error-box">❌ Error: ${e.message}</div>`;
+  }
+}
+
+function clearResults() {
+  document.getElementById('sqlEditor').value = '';
+  document.getElementById('resultsSection').innerHTML = '<div class="empty-state"><div>📊</div><p>Query results will appear here</p></div>';
+  document.getElementById('execTime').textContent = '';
+}
+
+document.getElementById('sqlEditor').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runQuery(); }
+});
+</script>
+</body>
+</html>
