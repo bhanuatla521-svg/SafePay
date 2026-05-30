@@ -243,5 +243,6 @@ function safepayApi() {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [react(), safepayApi()],
 })
